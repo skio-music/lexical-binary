@@ -8,4 +8,5 @@ setup(name='Distutils',
   author=['Greg Ward', 'Neal Clark'],
   author_email='neal@skiomusic.com',
   url='https://github.com/nealclark/lexical-binary',
+  py_modules=['lexicalbinary'],
 )
