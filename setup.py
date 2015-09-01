@@ -3,6 +3,7 @@
 from distutils.core import setup
 
 setup(name='Distutils',
+  name='lexicalbinary',
   version='1.0',
   description='A lexicographic binary encoding. Encode strings, bytearrays, integers, floats, and lists in a compact binary form preserving lexicographic sorting order.',
   author=['Greg Ward', 'Neal Clark'],
