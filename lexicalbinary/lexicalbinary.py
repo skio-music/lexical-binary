@@ -1,16 +1,18 @@
+from __future__ import absolute_import
 import struct
-import StringIO
+import six
+from six.moves import range
 
 def dump(stream, value):
     if isinstance(value, bytes):
         return encode_bytes(stream, value)
-    elif isinstance(value, unicode):
+    elif isinstance(value, six.text_type):
         return encode_string(stream, value)
     elif value is False:
         return encode_false(stream)
     elif value is True:
         return encode_true(stream)
-    elif isinstance(value, (int, long)):
+    elif isinstance(value, six.integer_types):
         return encode_integer(stream, value)
     elif isinstance(value, (tuple, list)):
         return encode_list(stream, value)
@@ -23,7 +25,7 @@ def dump(stream, value):
 
 
 def dumps(value):
-    return dump(StringIO.StringIO(), value).getvalue()
+    return dump(six.BytesIO(), value).getvalue()
 
 
 def loads(data):
@@ -37,7 +39,7 @@ def decode(data, offset):
         0x12: decode_true,
         0x20: decode_bytes,
         0x21: decode_list,
-        0x22: decode_string, 
+        0x22: decode_string,
         0x23: decode_float,
         0x24: decode_negative_integer,
         0x25: decode_positive_integer,
@@ -124,7 +126,7 @@ def encode_bytes(stream, value):
     input_buffer = bytearray(value)
     # Pad input for escaping
     input_buffer.extend(b"\x00" * 7)
-    input_buffer = buffer(input_buffer)
+    input_buffer = memoryview(input_buffer)
     input_len = len(value)
     buffer_len = 8 * ((input_len + 6) // 7)
     output_len = 8 * (input_len // 7) + (input_len % 7) + 1
@@ -148,7 +150,7 @@ def decode_bytes(data, offset):
     input_buffer = bytearray(data[offset : end_index])
     input_len = len(input_buffer)
     input_buffer.extend(b"\x00" * 7)
-    input_buffer = buffer(input_buffer)
+    input_buffer = memoryview(input_buffer)
     buffer_len = 7 * ((input_len + 7) // 8)  + 1
     output_len = 7 * (input_len // 8) + ((input_len - 1) % 8)
     output_buffer = bytearray(buffer_len)
@@ -168,8 +170,8 @@ def encode_integer(stream, value):
     positive = value >= 0
     if not positive:
         value = -1 - value
-    
-    output_len = max(1, (value.bit_length() + 6) // 7) 
+
+    output_len = max(1, (value.bit_length() + 6) // 7)
     output_buffer = bytearray(output_len)
     output_buffer[0] = value & 0x7F
     output_offset = 1
@@ -179,13 +181,13 @@ def encode_integer(stream, value):
         output_offset += 1
         value >>= 7
     output_buffer.reverse()
-    
+
     if positive:
         stream.write(b"\x25")
         stream.write(output_buffer)
     else:
         for i in range(output_len):
-            output_buffer[i] ^= 0xFF        
+            output_buffer[i] ^= 0xFF
         stream.write(b"\x24")
         stream.write(output_buffer)
     return stream
@@ -240,7 +242,7 @@ def encode_list(stream, value):
     stream.write(b"\x21")
     for child in value:
         dump(stream, child)
-    stream.write(b"\x01") 
+    stream.write(b"\x01")
     return stream
 
 
@@ -252,6 +254,6 @@ def decode_list(data, offset):
         result.append(child)
         byte, = struct.unpack_from(">B", data, offset)
     return (tuple(result), offset + 1)
-        
+
 
 
